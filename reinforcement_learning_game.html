@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>강화학습 Grid World 시뮬레이션</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .back-button {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #666;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+        .back-button:hover {
+            background: #555;
+        }
+
+        .back-button:active {
+            transform: scale(0.95);
+        }
+
+        #grid {
+            display: grid;
+            gap: 2px;
+            background: #333;
+            padding: 2px;
+            margin: 20px auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .cell {
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            background: white;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .cell.agent {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .cell.goal {
+            background: #FFD700;
+        }
+
+        .cell.obstacle {
+            background: #f44336;
+        }
+
+        .cell.visited {
+            background: #E3F2FD;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 6px;
+            background: #667eea;
+            color: white;
+            transition: all 0.3s;
+            font-weight: 600;
+            touch-action: manipulation;
+        }
+
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .stat-box {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            color: #333;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #2196F3;
+        }
+
+        .legend {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .legend-box {
+            width: 25px;
+            height: 25px;
+            border-radius: 4px;
+            border: 2px solid #333;
+            flex-shrink: 0;
+        }
+
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+
+        input[type="range"] {
+            width: 200px;
+            max-width: 100%;
+        }
+
+        /* 모바일 최적화 */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .subtitle {
+                font-size: 14px;
+            }
+
+            .cell {
+                width: 45px;
+                height: 45px;
+                font-size: 20px;
+            }
+
+            button {
+                padding: 10px 16px;
+                font-size: 14px;
+            }
+
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+
+            .stat-box {
+                padding: 10px;
+            }
+
+            .stat-value {
+                font-size: 20px;
+            }
+
+            .stat-label {
+                font-size: 12px;
+            }
+
+            .info {
+                font-size: 13px;
+                padding: 12px;
+            }
+
+            .legend {
+                gap: 10px;
+            }
+
+            .legend-item {
+                font-size: 12px;
+                gap: 6px;
+            }
+
+            .legend-box {
+                width: 20px;
+                height: 20px;
+            }
+
+            input[type="range"] {
+                width: 150px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 20px;
+            }
+
+            .cell {
+                width: 38px;
+                height: 38px;
+                font-size: 18px;
+            }
+
+            button {
+                padding: 8px 12px;
+                font-size: 13px;
+            }
+
+            .controls {
+                gap: 8px;
+            }
+
+            .stat-value {
+                font-size: 18px;
+            }
+
+            .info {
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="back-button">← 메인으로</a>
+
+        <h1>🤖 강화학습 Grid World</h1>
+        <p class="subtitle">Q-Learning 알고리즘으로 에이전트가 목표를 찾는 과정을 시뮬레이션합니다</p>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-box" style="background: #4CAF50;"></div>
+                <span>에이전트</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box" style="background: #FFD700;"></div>
+                <span>목표</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box" style="background: #f44336;"></div>
+                <span>장애물</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box" style="background: #E3F2FD;"></div>
+                <span>방문</span>
+            </div>
+        </div>
+
+        <div id="grid"></div>
+
+        <div class="stats">
+            <div class="stat-box">
+                <div class="stat-label">에피소드</div>
+                <div class="stat-value" id="episode">0</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">스텝</div>
+                <div class="stat-value" id="steps">0</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">총 보상</div>
+                <div class="stat-value" id="reward">0</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">성공률</div>
+                <div class="stat-value" id="success">0%</div>
+            </div>
+        </div>
+
+        <div class="speed-control">
+            <label for="speed">학습 속도:</label>
+            <input type="range" id="speed" min="1" max="100" value="50">
+            <span id="speedValue">50ms</span>
+        </div>
+
+        <div class="controls">
+            <button id="trainBtn" onclick="startTraining()">🎓 학습 시작</button>
+            <button id="stopBtn" onclick="stopTraining()" disabled>⏸️ 정지</button>
+            <button id="resetBtn" onclick="resetEnvironment()">🔄 초기화</button>
+            <button id="testBtn" onclick="testAgent()">🎯 테스트</button>
+        </div>
+
+        <div class="info">
+            <strong>📚 작동 원리:</strong><br>
+            • <strong>Q-Learning</strong>: 에이전트가 상태-행동 가치를 학습합니다<br>
+            • <strong>탐험 vs 활용</strong>: ε-greedy 전략 사용<br>
+            • <strong>보상</strong>: 목표 +100, 장애물 -100, 스텝 -1<br>
+            • <strong>파라미터</strong>: α=0.1, γ=0.9, ε=0.1
+        </div>
+    </div>
+
+    <script>
+        const GRID_SIZE = 6;
+        const ACTIONS = ['up', 'down', 'left', 'right'];
+
+        let qTable = {};
+        let agent = { x: 0, y: 0 };
+        let goal = { x: 5, y: 5 };
+        let obstacles = [
+            { x: 1, y: 1 }, { x: 2, y: 2 }, { x: 3, y: 1 },
+            { x: 1, y: 3 }, { x: 4, y: 3 }
+        ];
+
+        let episode = 0;
+        let steps = 0;
+        let totalReward = 0;
+        let successCount = 0;
+        let isTraining = false;
+        let trainingInterval = null;
+        let visitedCells = new Set();
+
+        const alpha = 0.1;
+        const gamma = 0.9;
+        let epsilon = 0.1;
+
+        function initGrid() {
+            const grid = document.getElementById('grid');
+            grid.style.gridTemplateColumns = `repeat(${GRID_SIZE}, 1fr)`;
+            grid.innerHTML = '';
+
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.id = `cell-${x}-${y}`;
+
+                    if (x === agent.x && y === agent.y) {
+                        cell.classList.add('agent');
+                        cell.textContent = '🤖';
+                    } else if (x === goal.x && y === goal.y) {
+                        cell.classList.add('goal');
+                        cell.textContent = '🎯';
+                    } else if (obstacles.some(obs => obs.x === x && obs.y === y)) {
+                        cell.classList.add('obstacle');
+                        cell.textContent = '🚫';
+                    }
+
+                    grid.appendChild(cell);
+                }
+            }
+        }
+
+        function getStateKey(x, y) {
+            return `${x},${y}`;
+        }
+
+        function getQValue(state, action) {
+            const key = `${state}-${action}`;
+            return qTable[key] || 0;
+        }
+
+        function setQValue(state, action, value) {
+            const key = `${state}-${action}`;
+            qTable[key] = value;
+        }
+
+        function chooseAction(state) {
+            if (Math.random() < epsilon) {
+                return ACTIONS[Math.floor(Math.random() * ACTIONS.length)];
+            }
+
+            let bestAction = ACTIONS[0];
+            let bestValue = getQValue(state, bestAction);
+
+            for (let action of ACTIONS) {
+                const value = getQValue(state, action);
+                if (value > bestValue) {
+                    bestValue = value;
+                    bestAction = action;
+                }
+            }
+
+            return bestAction;
+        }
+
+        function takeAction(action) {
+            let newX = agent.x;
+            let newY = agent.y;
+
+            switch(action) {
+                case 'up': newY = Math.max(0, newY - 1); break;
+                case 'down': newY = Math.min(GRID_SIZE - 1, newY + 1); break;
+                case 'left': newX = Math.max(0, newX - 1); break;
+                case 'right': newX = Math.min(GRID_SIZE - 1, newX + 1); break;
+            }
+
+            let reward = -1;
+            let done = false;
+
+            if (obstacles.some(obs => obs.x === newX && obs.y === newY)) {
+                reward = -100;
+                done = true;
+            } else if (newX === goal.x && newY === goal.y) {
+                reward = 100;
+                done = true;
+                successCount++;
+            } else {
+                agent.x = newX;
+                agent.y = newY;
+                visitedCells.add(getStateKey(newX, newY));
+            }
+
+            return { newX, newY, reward, done };
+        }
+
+        function updateQValue(state, action, reward, nextState) {
+            const currentQ = getQValue(state, action);
+
+            let maxNextQ = -Infinity;
+            for (let nextAction of ACTIONS) {
+                const q = getQValue(nextState, nextAction);
+                if (q > maxNextQ) maxNextQ = q;
+            }
+
+            const newQ = currentQ + alpha * (reward + gamma * maxNextQ - currentQ);
+            setQValue(state, action, newQ);
+        }
+
+        function updateDisplay() {
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    const cell = document.getElementById(`cell-${x}-${y}`);
+                    cell.className = 'cell';
+                    cell.textContent = '';
+
+                    if (visitedCells.has(getStateKey(x, y))) {
+                        cell.classList.add('visited');
+                    }
+
+                    if (x === agent.x && y === agent.y) {
+                        cell.classList.add('agent');
+                        cell.textContent = '🤖';
+                    } else if (x === goal.x && y === goal.y) {
+                        cell.classList.add('goal');
+                        cell.textContent = '🎯';
+                    } else if (obstacles.some(obs => obs.x === x && obs.y === y)) {
+                        cell.classList.add('obstacle');
+                        cell.textContent = '🚫';
+                    }
+                }
+            }
+
+            document.getElementById('episode').textContent = episode;
+            document.getElementById('steps').textContent = steps;
+            document.getElementById('reward').textContent = Math.round(totalReward);
+            const successRate = episode > 0 ? Math.round((successCount / episode) * 100) : 0;
+            document.getElementById('success').textContent = successRate + '%';
+        }
+
+        function runEpisode() {
+            agent.x = 0;
+            agent.y = 0;
+            visitedCells.clear();
+            visitedCells.add(getStateKey(0, 0));
+
+            let episodeSteps = 0;
+            let episodeReward = 0;
+            const maxSteps = 100;
+
+            const stepInterval = setInterval(() => {
+                const state = getStateKey(agent.x, agent.y);
+                const action = chooseAction(state);
+                const result = takeAction(action);
+
+                episodeSteps++;
+                steps++;
+                episodeReward += result.reward;
+                totalReward += result.reward;
+
+                const nextState = getStateKey(result.newX, result.newY);
+                updateQValue(state, action, result.reward, nextState);
+
+                updateDisplay();
+
+                if (result.done || episodeSteps >= maxSteps) {
+                    clearInterval(stepInterval);
+                    episode++;
+
+                    if (isTraining) {
+                        setTimeout(runEpisode, 100);
+                    }
+                }
+            }, 101 - document.getElementById('speed').value);
+
+            if (!isTraining) {
+                clearInterval(stepInterval);
+            }
+        }
+
+        function startTraining() {
+            isTraining = true;
+            document.getElementById('trainBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+            document.getElementById('testBtn').disabled = true;
+            epsilon = 0.1;
+            runEpisode();
+        }
+
+        function stopTraining() {
+            isTraining = false;
+            document.getElementById('trainBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('testBtn').disabled = false;
+        }
+
+        function resetEnvironment() {
+            stopTraining();
+            qTable = {};
+            agent = { x: 0, y: 0 };
+            episode = 0;
+            steps = 0;
+            totalReward = 0;
+            successCount = 0;
+            visitedCells.clear();
+            visitedCells.add(getStateKey(0, 0));
+            initGrid();
+            updateDisplay();
+        }
+
+        function testAgent() {
+            epsilon = 0;
+            agent.x = 0;
+            agent.y = 0;
+            visitedCells.clear();
+            runEpisode();
+        }
+
+        document.getElementById('speed').addEventListener('input', (e) => {
+            document.getElementById('speedValue').textContent = (101 - e.target.value) + 'ms';
+        });
+
+        initGrid();
+        updateDisplay();
+    </script>
+</body>
+</html>
