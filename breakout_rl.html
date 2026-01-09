@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>벽돌깨기 강화학습 - 개선 버전</title>
+    <title>벽돌깨기 강화학습 - 근본 개선</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -160,6 +160,15 @@
             font-size: 13px;
         }
 
+        .critical {
+            background: #f8d7da;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #dc3545;
+            font-size: 13px;
+        }
+
         .progress-bar {
             width: 100%;
             height: 30px;
@@ -220,30 +229,6 @@
         input[type="range"] {
             width: 300px;
             max-width: 100%;
-            height: 6px;
-            border-radius: 3px;
-            background: #ddd;
-            outline: none;
-            -webkit-appearance: none;
-        }
-
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: #667eea;
-            cursor: pointer;
-        }
-
-        input[type="range"]::-moz-range-thumb {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: #667eea;
-            cursor: pointer;
-            border: none;
         }
 
         .speed-value {
@@ -277,11 +262,6 @@
             touch-action: none;
         }
 
-        .touch-btn:active {
-            background: #5568d3;
-            transform: scale(0.95);
-        }
-
         @media (max-width: 768px) {
             .stats {
                 grid-template-columns: repeat(2, 1fr);
@@ -296,8 +276,8 @@
     <div class="container">
         <a href="index.html" class="back-button">← 메인으로</a>
 
-        <h1>🧱 벽돌깨기 강화학습 (개선 버전)</h1>
-        <p class="subtitle">개선된 상태 표현과 보상 함수로 효과적인 학습 (벽돌 160개)</p>
+        <h1>🧱 벽돌깨기 강화학습 (근본 개선)</h1>
+        <p class="subtitle">단순화된 상태 + 강력한 보상 세이핑 + 쉬운 난이도</p>
 
         <div id="modeIndicator" class="mode-indicator">대기 중</div>
 
@@ -332,20 +312,20 @@
                 <div class="stat-value" id="bricksHit">0</div>
             </div>
             <div class="stat-box">
-                <div class="stat-label">남은 벽돌</div>
-                <div class="stat-value" id="bricksLeft">160</div>
+                <div class="stat-label">성공률</div>
+                <div class="stat-value" id="successRate">0%</div>
             </div>
             <div class="stat-box highlight">
                 <div class="stat-label">탐험율 (ε)</div>
-                <div class="stat-value" id="epsilonValue">0.20</div>
+                <div class="stat-value" id="epsilonValue">0.10</div>
             </div>
             <div class="stat-box highlight">
                 <div class="stat-label">에피소드 보상</div>
                 <div class="stat-value" id="episodeReward">0</div>
             </div>
             <div class="stat-box highlight">
-                <div class="stat-label">Q-테이블 크기</div>
-                <div class="stat-value" id="qTableSize">0</div>
+                <div class="stat-label">평균 보상</div>
+                <div class="stat-value" id="avgReward">0</div>
             </div>
         </div>
 
@@ -369,24 +349,34 @@
             <button id="resetBtn" onclick="resetGame()">🔄 초기화</button>
         </div>
 
+        <div class="critical">
+            <strong>🔴 근본적인 문제 분석 및 해결:</strong><br>
+            <strong>문제 1:</strong> 상태 공간이 너무 복잡 → <strong>3차원으로 단순화</strong> (공 위치, 패들 위치, 공 방향)<br>
+            <strong>문제 2:</strong> 초기에 공을 거의 못 받음 → <strong>패들 크기 증가</strong> (100→140), <strong>공 속도 감소</strong> (4→3)<br>
+            <strong>문제 3:</strong> 보상이 희소함 → <strong>거리 기반 보상</strong> (공과 패들이 가까우면 +보상)<br>
+            <strong>문제 4:</strong> 너무 많은 탐험 → <strong>epsilon=0.1</strong> (10% 탐험, 90% 활용)<br>
+            <strong>문제 5:</strong> 학습이 안정적이지 않음 → <strong>α=0.5, γ=0.95</strong> (빠르고 안정적인 학습)
+        </div>
+
         <div class="warning">
-            <strong>⚠️ 개선된 학습 로직:</strong><br>
-            • <strong>상태 표현 개선</strong>: 공과 패들의 상대적 위치를 더 세밀하게 인코딩<br>
-            • <strong>보상 세이핑</strong>: 공이 패들 방향으로 움직이면 작은 보상 (+0.1)<br>
-            • <strong>낮은 초기 탐험율</strong>: ε=0.2로 시작 (무작위 행동 20%)<br>
-            • <strong>느린 Epsilon Decay</strong>: 0.999로 변경 (충분한 학습 시간)<br>
-            • <strong>높은 학습률</strong>: α=0.3 (빠른 업데이트)<br>
-            • <strong>벽돌 160개</strong>: 10행 × 16열 = 160개 유지
+            <strong>⚠️ 개선된 보상 시스템:</strong><br>
+            • <strong>거리 보상</strong>: 공이 패들에 가까울수록 +보상 (최대 +1.0)<br>
+            • <strong>패들 히트</strong>: +10점 (가장 중요!)<br>
+            • <strong>벽돌 파괴</strong>: +5점<br>
+            • <strong>올바른 방향 이동</strong>: +0.5점<br>
+            • <strong>공 놓침</strong>: -10점<br>
+            • <strong>잘못된 방향</strong>: -0.2점
         </div>
 
         <div class="info">
-            <strong>📚 개선된 보상 시스템:</strong><br>
-            • <strong>벽돌 파괴</strong>: +10점<br>
-            • <strong>패들 히트</strong>: +2점<br>
-            • <strong>공을 패들 방향으로</strong>: +0.1점 (보상 세이핑)<br>
-            • <strong>공 놓침</strong>: -5점<br>
-            • <strong>스텝 페널티</strong>: -0.01점<br>
-            • <strong>학습률</strong>: α=0.3, <strong>할인율</strong>: γ=0.99
+            <strong>📚 학습 파라미터:</strong><br>
+            • <strong>상태</strong>: 3차원 (ballX, paddleX, ballDirX)<br>
+            • <strong>행동</strong>: 3가지 (왼쪽, 정지, 오른쪽)<br>
+            • <strong>학습률(α)</strong>: 0.5 (빠른 학습)<br>
+            • <strong>할인율(γ)</strong>: 0.95<br>
+            • <strong>탐험율(ε)</strong>: 0.1 → 0.01 (매우 느린 감소)<br>
+            • <strong>패들</strong>: 140 픽셀 (크게)<br>
+            • <strong>공 속도</strong>: 3 (느리게)
         </div>
     </div>
 
@@ -411,17 +401,18 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        // 게임 설정 - 벽돌 160개 유지
-        const PADDLE_WIDTH = 100;
+        // 게임 설정 - 쉽게 조정
+        const PADDLE_WIDTH = 140;  // 100 → 140 (크게)
         const PADDLE_HEIGHT = 15;
         const BALL_RADIUS = 8;
-        const BRICK_ROWS = 10;      // 160개 유지
-        const BRICK_COLS = 16;      // 10 × 16 = 160
+        const BRICK_ROWS = 10;
+        const BRICK_COLS = 16;
         const BRICK_WIDTH = 35;
         const BRICK_HEIGHT = 10;
         const BRICK_PADDING = 2.5;
         const BRICK_OFFSET_TOP = 30;
         const BRICK_OFFSET_LEFT = 7.5;
+        const BALL_SPEED = 3;  // 4 → 3 (느리게)
 
         let paddle = { 
             x: canvas.width / 2 - PADDLE_WIDTH / 2, 
@@ -432,8 +423,8 @@
         let ball = { 
             x: canvas.width / 2, 
             y: canvas.height - 70,
-            dx: 4, 
-            dy: -4, 
+            dx: BALL_SPEED, 
+            dy: -BALL_SPEED, 
             radius: BALL_RADIUS 
         };
         let bricks = [];
@@ -442,22 +433,25 @@
         let bestScore = 0;
         let totalScore = 0;
         let episodeReward = 0;
+        let totalReward = 0;
         let bricksHit = 0;
         let totalBricksHit = 0;
+        let successCount = 0;  // 패들로 받은 횟수
         let isTraining = false;
         let isTesting = false;
         let isManual = false;
         let gameLoop = null;
         let speedMultiplier = 10;
         let stepCount = 0;
+        let frameCount = 0;  // 렌더링용
 
         let qTable = {};
         const ACTIONS = [-1, 0, 1];
-        const alpha = 0.3;
-        const gamma = 0.99;
-        let epsilon = 0.2;
-        const epsilonMin = 0.05;
-        const epsilonDecay = 0.999;
+        const alpha = 0.5;    // 학습률 증가
+        const gamma = 0.95;   // 할인율
+        let epsilon = 0.1;    // 낮은 초기 탐험율
+        const epsilonMin = 0.01;
+        const epsilonDecay = 0.9995;  // 매우 느린 감소
 
         let rightPressed = false;
         let leftPressed = false;
@@ -525,27 +519,18 @@
             }
         }
 
-        // 개선된 상태 표현
+        // 단순화된 상태 표현 (3차원)
         function getState() {
-            // 공과 패들의 상대적 x 위치
-            const relativeX = Math.floor((ball.x - paddle.x) / 20);
+            // 공의 x 위치 (10구간)
+            const ballX = Math.floor(ball.x / 60);
 
-            // 공의 절대 x 위치 구간
-            const ballXZone = Math.floor(ball.x / 150);
-
-            // 공의 y 위치 구간
-            const ballYZone = Math.floor(ball.y / 100);
+            // 패들의 x 위치 (10구간)
+            const paddleX = Math.floor(paddle.x / 60);
 
             // 공의 x 방향
             const ballDirX = ball.dx > 0 ? 1 : 0;
 
-            // 공의 y 방향
-            const ballDirY = ball.dy > 0 ? 1 : 0;
-
-            // 패들 위치 구간
-            const paddleZone = Math.floor(paddle.x / 100);
-
-            return `${relativeX}_${ballXZone}_${ballYZone}_${ballDirX}_${ballDirY}_${paddleZone}`;
+            return `${ballX}-${paddleX}-${ballDirX}`;
         }
 
         function getQValue(state, action) {
@@ -645,8 +630,8 @@
                             ball.y > b.y && ball.y < b.y + BRICK_HEIGHT) {
                             ball.dy = -ball.dy;
                             b.status = 0;
-                            score += 10;
-                            reward = 10;
+                            score += 5;
+                            reward = 5;
                             bricksHit++;
                             totalBricksHit++;
                         }
@@ -665,16 +650,6 @@
             return true;
         }
 
-        function countRemainingBricks() {
-            let count = 0;
-            for (let r = 0; r < BRICK_ROWS; r++) {
-                for (let c = 0; c < BRICK_COLS; c++) {
-                    if (bricks[r][c].status === 1) count++;
-                }
-            }
-            return count;
-        }
-
         function draw() {
             ctx.fillStyle = '#000';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -686,16 +661,15 @@
             ctx.fillStyle = '#fff';
             ctx.font = '14px Arial';
             ctx.fillText('점수: ' + score, 10, 20);
-
-            const remaining = countRemainingBricks();
-            document.getElementById('bricksLeft').textContent = remaining;
+            ctx.fillText('벽돌: ' + bricksHit, 500, 20);
         }
 
         function update() {
             const state = getState();
             let action = 0;
-            let reward = -0.01;  // 스텝 페널티
+            let reward = 0;
             stepCount++;
+            frameCount++;
 
             if (isManual) {
                 if (rightPressed && paddle.x < canvas.width - paddle.width) {
@@ -705,20 +679,29 @@
                 }
             } else if (isTraining || isTesting) {
                 action = chooseAction(state);
-                const moveAmount = action * 8;
+                const moveAmount = action * 10;  // 더 빠른 이동
                 paddle.x += moveAmount;
                 paddle.x = Math.max(0, Math.min(canvas.width - paddle.width, paddle.x));
 
-                // 보상 세이핑: 공이 패들 쪽으로 움직이는 방향 보상
-                const ballToPaddle = paddle.x + paddle.width / 2 - ball.x;
+                // 핵심: 거리 기반 보상 (공이 패들에 가까울수록 보상)
+                const distance = Math.abs(ball.x - (paddle.x + paddle.width / 2));
+                const maxDistance = canvas.width / 2;
+                const proximityReward = (1 - distance / maxDistance) * 0.5;  // 0~0.5
+                reward += proximityReward;
+
+                // 올바른 방향으로 움직이면 추가 보상
+                const ballToPaddle = (paddle.x + paddle.width / 2) - ball.x;
                 if ((action === -1 && ballToPaddle < 0) || (action === 1 && ballToPaddle > 0)) {
-                    reward += 0.1;
+                    reward += 0.5;
+                } else if (action !== 0) {
+                    reward -= 0.2;  // 잘못된 방향 페널티
                 }
             }
 
             ball.x += ball.dx;
             ball.y += ball.dy;
 
+            // 벽 충돌
             if (ball.x + ball.dx > canvas.width - ball.radius || ball.x + ball.dx < ball.radius) {
                 ball.dx = -ball.dx;
             }
@@ -726,18 +709,19 @@
                 ball.dy = -ball.dy;
             }
 
-            // 패들 충돌
+            // 패들 충돌 - 가장 중요한 보상!
             if (ball.y + ball.dy > paddle.y - ball.radius && ball.y < paddle.y + paddle.height) {
                 if (ball.x > paddle.x && ball.x < paddle.x + paddle.width) {
                     ball.dy = -ball.dy;
                     ball.y = paddle.y - ball.radius;
-                    reward += 2;
+                    reward += 10;  // 큰 보상
+                    successCount++;
                 }
             }
 
-            // 하단 경계
+            // 하단 경계 - 게임 오버
             if (ball.y + ball.radius > canvas.height) {
-                reward = -5;
+                reward = -10;  // 페널티
                 const nextState = getState();
                 if (isTraining) {
                     updateQValue(state, action, reward, nextState, true);
@@ -750,8 +734,9 @@
             const brickReward = collisionDetection();
             reward += brickReward;
 
+            // 게임 클리어 또는 타임아웃
             if (checkGameClear() || stepCount > 10000) {
-                if (checkGameClear()) reward += 100;  // 게임 클리어 보상
+                if (checkGameClear()) reward += 100;
                 const nextState = getState();
                 if (isTraining) {
                     updateQValue(state, action, reward, nextState, true);
@@ -767,12 +752,17 @@
             }
 
             episodeReward += reward;
-            draw();
+
+            // 렌더링 최적화: 매 프레임이 아닌 일정 간격으로만 그리기
+            if (frameCount % Math.max(1, Math.floor(speedMultiplier / 10)) === 0) {
+                draw();
+            }
         }
 
         function endEpisode() {
             episode++;
             totalScore += score;
+            totalReward += episodeReward;
             bestScore = Math.max(bestScore, score);
 
             if (isTraining && epsilon > epsilonMin) {
@@ -795,12 +785,13 @@
             paddle.y = canvas.height - 50;
             ball.x = canvas.width / 2;
             ball.y = canvas.height - 70;
-            ball.dx = (Math.random() > 0.5 ? 1 : -1) * 4;
-            ball.dy = -4;
+            ball.dx = (Math.random() > 0.5 ? 1 : -1) * BALL_SPEED;
+            ball.dy = -BALL_SPEED;
             score = 0;
             bricksHit = 0;
             episodeReward = 0;
             stepCount = 0;
+            frameCount = 0;
             initBricks();
         }
 
@@ -811,12 +802,20 @@
             const avgScore = episode > 0 ? Math.round(totalScore / episode) : 0;
             document.getElementById('avgScore').textContent = avgScore;
             document.getElementById('bricksHit').textContent = totalBricksHit;
+
+            const successRate = episode > 0 ? Math.round((successCount / episode) * 100) : 0;
+            document.getElementById('successRate').textContent = successRate + '%';
+
             document.getElementById('epsilonValue').textContent = epsilon.toFixed(2);
-            document.getElementById('qTableSize').textContent = Object.keys(qTable).length;
 
             const rewardEl = document.getElementById('episodeReward');
             rewardEl.textContent = episodeReward.toFixed(1);
             rewardEl.className = 'stat-value ' + (episodeReward >= 0 ? 'positive' : 'negative');
+
+            const avgReward = episode > 0 ? (totalReward / episode).toFixed(1) : 0;
+            const avgRewardEl = document.getElementById('avgReward');
+            avgRewardEl.textContent = avgReward;
+            avgRewardEl.className = 'stat-value ' + (avgReward >= 0 ? 'positive' : 'negative');
 
             const progress = Math.min(100, Math.round((episode / 500) * 100));
             document.getElementById('progressBar').style.width = progress + '%';
@@ -900,11 +899,14 @@
             score = 0;
             bestScore = 0;
             totalScore = 0;
+            totalReward = 0;
             episodeReward = 0;
             bricksHit = 0;
             totalBricksHit = 0;
+            successCount = 0;
             stepCount = 0;
-            epsilon = 0.2;
+            frameCount = 0;
+            epsilon = 0.1;
 
             document.getElementById('trainBtn').disabled = false;
             document.getElementById('stopBtn').disabled = true;
