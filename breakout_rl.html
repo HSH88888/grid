@@ -2,927 +2,631 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>벽돌깨기 강화학습 - 근본 개선</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            margin: 0;
-            overflow-x: hidden;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Q-Learning 벽돌깨기</title>
+<style>
+* {
+margin: 0;
+padding: 0;
+box-sizing: border-box;
+}
 
-        .container {
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-            max-width: 900px;
-            width: 100%;
-        }
+body {
+font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+display: flex;
+flex-direction: column;
+align-items: center;
+padding: 20px;
+background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+min-height: 100vh;
+}
 
-        h1 {
-            color: #333;
-            text-align: center;
-            margin-bottom: 10px;
-        }
+.container {
+background: white;
+padding: 30px;
+border-radius: 15px;
+box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+max-width: 900px;
+}
 
-        .subtitle {
-            text-align: center;
-            color: #666;
-            margin-bottom: 20px;
-        }
+h1 {
+color: #333;
+text-align: center;
+margin-bottom: 10px;
+}
 
-        .back-button {
-            display: inline-block;
-            padding: 10px 20px;
-            background: #666;
-            color: white;
-            text-decoration: none;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            transition: all 0.3s;
-        }
+.subtitle {
+text-align: center;
+color: #666;
+margin-bottom: 20px;
+font-size: 14px;
+}
 
-        .back-button:hover {
-            background: #555;
-        }
+.game-area {
+display: flex;
+gap: 20px;
+margin: 20px 0;
+flex-wrap: wrap;
+justify-content: center;
+}
 
-        .canvas-container {
-            display: flex;
-            justify-content: center;
-            margin: 20px 0;
-        }
+#gameCanvas {
+border: 3px solid #333;
+border-radius: 8px;
+box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+background: #000;
+}
 
-        #gameCanvas {
-            border: 3px solid #333;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            background: #000;
-            max-width: 100%;
-            height: auto;
-        }
+.controls {
+display: flex;
+gap: 10px;
+justify-content: center;
+margin: 20px 0;
+flex-wrap: wrap;
+}
 
-        .controls {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin: 20px 0;
-            flex-wrap: wrap;
-        }
+button {
+padding: 12px 24px;
+font-size: 16px;
+cursor: pointer;
+border: none;
+border-radius: 6px;
+background: #667eea;
+color: white;
+transition: all 0.3s;
+font-weight: 600;
+}
 
-        button {
-            padding: 12px 24px;
-            font-size: 16px;
-            cursor: pointer;
-            border: none;
-            border-radius: 6px;
-            background: #667eea;
-            color: white;
-            transition: all 0.3s;
-            font-weight: 600;
-            touch-action: manipulation;
-        }
+button:hover {
+background: #5568d3;
+transform: translateY(-2px);
+}
 
-        button:hover {
-            background: #5568d3;
-        }
+button:disabled {
+background: #ccc;
+cursor: not-allowed;
+transform: none;
+}
 
-        button:active {
-            transform: scale(0.95);
-        }
+button.active {
+background: #4CAF50;
+}
 
-        button:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
+.stats {
+display: grid;
+grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+gap: 15px;
+margin: 20px 0;
+}
 
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 15px;
-            margin: 20px 0;
-        }
+.stat-box {
+background: #f5f5f5;
+padding: 15px;
+border-radius: 8px;
+text-align: center;
+}
 
-        .stat-box {
-            background: #f5f5f5;
-            padding: 15px;
-            border-radius: 8px;
-            text-align: center;
-        }
+.stat-label {
+color: #666;
+font-size: 14px;
+margin-bottom: 5px;
+}
 
-        .stat-box.highlight {
-            background: linear-gradient(135deg, #667eea20, #764ba220);
-            border: 2px solid #667eea;
-        }
+.stat-value {
+color: #333;
+font-size: 24px;
+font-weight: bold;
+}
 
-        .stat-label {
-            color: #666;
-            font-size: 14px;
-            margin-bottom: 5px;
-        }
+.info {
+background: #e3f2fd;
+padding: 15px;
+border-radius: 8px;
+margin: 15px 0;
+border-left: 4px solid #2196F3;
+font-size: 14px;
+line-height: 1.6;
+}
 
-        .stat-value {
-            color: #333;
-            font-size: 24px;
-            font-weight: bold;
-        }
+.q-info {
+background: #fff3cd;
+padding: 15px;
+border-radius: 8px;
+margin: 15px 0;
+border-left: 4px solid #FF9800;
+font-size: 13px;
+}
 
-        .stat-value.positive {
-            color: #4CAF50;
-        }
+.speed-control {
+display: flex;
+align-items: center;
+gap: 10px;
+justify-content: center;
+margin: 15px 0;
+}
 
-        .stat-value.negative {
-            color: #f44336;
-        }
+input[type="range"] {
+width: 200px;
+}
 
-        .info {
-            background: #e3f2fd;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
-            border-left: 4px solid #2196F3;
-            font-size: 13px;
-        }
-
-        .warning {
-            background: #fff3cd;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
-            border-left: 4px solid #ffc107;
-            font-size: 13px;
-        }
-
-        .critical {
-            background: #f8d7da;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
-            border-left: 4px solid #dc3545;
-            font-size: 13px;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 30px;
-            background: #f0f0f0;
-            border-radius: 15px;
-            overflow: hidden;
-            margin: 20px 0;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #4CAF50, #8BC34A);
-            transition: width 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-        }
-
-        .mode-indicator {
-            text-align: center;
-            padding: 10px;
-            background: #fff3cd;
-            border-radius: 8px;
-            margin: 10px 0;
-            font-weight: bold;
-            color: #856404;
-        }
-
-        .mode-indicator.training {
-            background: #d1ecf1;
-            color: #0c5460;
-        }
-
-        .mode-indicator.testing {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .speed-control {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            justify-content: center;
-            margin: 20px 0;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            flex-wrap: wrap;
-        }
-
-        .speed-control label {
-            font-weight: 600;
-            color: #333;
-        }
-
-        input[type="range"] {
-            width: 300px;
-            max-width: 100%;
-        }
-
-        .speed-value {
-            min-width: 80px;
-            text-align: center;
-            font-weight: bold;
-            color: #667eea;
-            font-size: 16px;
-        }
-
-        .touch-controls {
-            display: none;
-            justify-content: center;
-            gap: 20px;
-            margin: 15px 0;
-        }
-
-        .touch-btn {
-            width: 70px;
-            height: 70px;
-            border-radius: 50%;
-            background: #667eea;
-            color: white;
-            border: none;
-            font-size: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            user-select: none;
-            touch-action: none;
-        }
-
-        @media (max-width: 768px) {
-            .stats {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            .touch-controls {
-                display: flex;
-            }
-        }
-    </style>
+@media (max-width: 768px) {
+.container {
+padding: 15px;
+}
+#gameCanvas {
+width: 100%;
+max-width: 400px;
+height: auto;
+}
+}
+</style>
 </head>
 <body>
-    <div class="container">
-        <a href="index.html" class="back-button">← 메인으로</a>
-
-        <h1>🧱 벽돌깨기 강화학습 (근본 개선)</h1>
-        <p class="subtitle">단순화된 상태 + 강력한 보상 세이핑 + 쉬운 난이도</p>
-
-        <div id="modeIndicator" class="mode-indicator">대기 중</div>
-
-        <div class="canvas-container">
-            <canvas id="gameCanvas" width="600" height="500"></canvas>
-        </div>
-
-        <div class="touch-controls">
-            <button class="touch-btn" id="leftBtn">◄</button>
-            <button class="touch-btn" id="rightBtn">►</button>
-        </div>
-
-        <div class="stats">
-            <div class="stat-box">
-                <div class="stat-label">에피소드</div>
-                <div class="stat-value" id="episode">0</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-label">현재 점수</div>
-                <div class="stat-value" id="score">0</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-label">최고 점수</div>
-                <div class="stat-value" id="bestScore">0</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-label">평균 점수</div>
-                <div class="stat-value" id="avgScore">0</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-label">벽돌 깬 수</div>
-                <div class="stat-value" id="bricksHit">0</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-label">성공률</div>
-                <div class="stat-value" id="successRate">0%</div>
-            </div>
-            <div class="stat-box highlight">
-                <div class="stat-label">탐험율 (ε)</div>
-                <div class="stat-value" id="epsilonValue">0.10</div>
-            </div>
-            <div class="stat-box highlight">
-                <div class="stat-label">에피소드 보상</div>
-                <div class="stat-value" id="episodeReward">0</div>
-            </div>
-            <div class="stat-box highlight">
-                <div class="stat-label">평균 보상</div>
-                <div class="stat-value" id="avgReward">0</div>
-            </div>
-        </div>
-
-        <div class="progress-bar">
-            <div class="progress-fill" id="progressBar" style="width: 0%">
-                <span id="progressText">0%</span>
-            </div>
-        </div>
-
-        <div class="speed-control">
-            <label for="speed">⚡ 학습 속도:</label>
-            <input type="range" id="speed" min="1" max="100" value="10" step="1">
-            <span class="speed-value" id="speedValue">10x</span>
-        </div>
-
-        <div class="controls">
-            <button id="trainBtn" onclick="startTraining()">🎓 학습</button>
-            <button id="stopBtn" onclick="stopTraining()" disabled>⏸️ 정지</button>
-            <button id="testBtn" onclick="testAgent()">🎯 테스트</button>
-            <button id="playBtn" onclick="playManually()">🎮 플레이</button>
-            <button id="resetBtn" onclick="resetGame()">🔄 초기화</button>
-        </div>
-
-        <div class="critical">
-            <strong>🔴 근본적인 문제 분석 및 해결:</strong><br>
-            <strong>문제 1:</strong> 상태 공간이 너무 복잡 → <strong>3차원으로 단순화</strong> (공 위치, 패들 위치, 공 방향)<br>
-            <strong>문제 2:</strong> 초기에 공을 거의 못 받음 → <strong>패들 크기 증가</strong> (100→140), <strong>공 속도 감소</strong> (4→3)<br>
-            <strong>문제 3:</strong> 보상이 희소함 → <strong>거리 기반 보상</strong> (공과 패들이 가까우면 +보상)<br>
-            <strong>문제 4:</strong> 너무 많은 탐험 → <strong>epsilon=0.1</strong> (10% 탐험, 90% 활용)<br>
-            <strong>문제 5:</strong> 학습이 안정적이지 않음 → <strong>α=0.5, γ=0.95</strong> (빠르고 안정적인 학습)
-        </div>
-
-        <div class="warning">
-            <strong>⚠️ 개선된 보상 시스템:</strong><br>
-            • <strong>거리 보상</strong>: 공이 패들에 가까울수록 +보상 (최대 +1.0)<br>
-            • <strong>패들 히트</strong>: +10점 (가장 중요!)<br>
-            • <strong>벽돌 파괴</strong>: +5점<br>
-            • <strong>올바른 방향 이동</strong>: +0.5점<br>
-            • <strong>공 놓침</strong>: -10점<br>
-            • <strong>잘못된 방향</strong>: -0.2점
-        </div>
-
-        <div class="info">
-            <strong>📚 학습 파라미터:</strong><br>
-            • <strong>상태</strong>: 3차원 (ballX, paddleX, ballDirX)<br>
-            • <strong>행동</strong>: 3가지 (왼쪽, 정지, 오른쪽)<br>
-            • <strong>학습률(α)</strong>: 0.5 (빠른 학습)<br>
-            • <strong>할인율(γ)</strong>: 0.95<br>
-            • <strong>탐험율(ε)</strong>: 0.1 → 0.01 (매우 느린 감소)<br>
-            • <strong>패들</strong>: 140 픽셀 (크게)<br>
-            • <strong>공 속도</strong>: 3 (느리게)
-        </div>
-    </div>
-
-    <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-
-        function resizeCanvas() {
-            const container = document.querySelector('.canvas-container');
-            const maxWidth = Math.min(600, container.clientWidth - 10);
-            const scale = maxWidth / 600;
-
-            if (window.innerWidth <= 768) {
-                canvas.style.width = maxWidth + 'px';
-                canvas.style.height = (500 * scale) + 'px';
-            } else {
-                canvas.style.width = '600px';
-                canvas.style.height = '500px';
-            }
-        }
-
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
-
-        // 게임 설정 - 쉽게 조정
-        const PADDLE_WIDTH = 140;  // 100 → 140 (크게)
-        const PADDLE_HEIGHT = 15;
-        const BALL_RADIUS = 8;
-        const BRICK_ROWS = 10;
-        const BRICK_COLS = 16;
-        const BRICK_WIDTH = 35;
-        const BRICK_HEIGHT = 10;
-        const BRICK_PADDING = 2.5;
-        const BRICK_OFFSET_TOP = 30;
-        const BRICK_OFFSET_LEFT = 7.5;
-        const BALL_SPEED = 3;  // 4 → 3 (느리게)
-
-        let paddle = { 
-            x: canvas.width / 2 - PADDLE_WIDTH / 2, 
-            y: canvas.height - 50,
-            width: PADDLE_WIDTH, 
-            height: PADDLE_HEIGHT 
-        };
-        let ball = { 
-            x: canvas.width / 2, 
-            y: canvas.height - 70,
-            dx: BALL_SPEED, 
-            dy: -BALL_SPEED, 
-            radius: BALL_RADIUS 
-        };
-        let bricks = [];
-        let score = 0;
-        let episode = 0;
-        let bestScore = 0;
-        let totalScore = 0;
-        let episodeReward = 0;
-        let totalReward = 0;
-        let bricksHit = 0;
-        let totalBricksHit = 0;
-        let successCount = 0;  // 패들로 받은 횟수
-        let isTraining = false;
-        let isTesting = false;
-        let isManual = false;
-        let gameLoop = null;
-        let speedMultiplier = 10;
-        let stepCount = 0;
-        let frameCount = 0;  // 렌더링용
-
-        let qTable = {};
-        const ACTIONS = [-1, 0, 1];
-        const alpha = 0.5;    // 학습률 증가
-        const gamma = 0.95;   // 할인율
-        let epsilon = 0.1;    // 낮은 초기 탐험율
-        const epsilonMin = 0.01;
-        const epsilonDecay = 0.9995;  // 매우 느린 감소
-
-        let rightPressed = false;
-        let leftPressed = false;
-
-        document.addEventListener('keydown', keyDownHandler);
-        document.addEventListener('keyup', keyUpHandler);
-
-        function keyDownHandler(e) {
-            if (e.key === 'Right' || e.key === 'ArrowRight') {
-                rightPressed = true;
-            } else if (e.key === 'Left' || e.key === 'ArrowLeft') {
-                leftPressed = true;
-            }
-        }
-
-        function keyUpHandler(e) {
-            if (e.key === 'Right' || e.key === 'ArrowRight') {
-                rightPressed = false;
-            } else if (e.key === 'Left' || e.key === 'ArrowLeft') {
-                leftPressed = false;
-            }
-        }
-
-        const leftBtn = document.getElementById('leftBtn');
-        const rightBtn = document.getElementById('rightBtn');
-
-        leftBtn.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            leftPressed = true;
-        });
-
-        leftBtn.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            leftPressed = false;
-        });
-
-        rightBtn.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            rightPressed = true;
-        });
-
-        rightBtn.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            rightPressed = false;
-        });
-
-        document.getElementById('speed').addEventListener('input', (e) => {
-            speedMultiplier = parseInt(e.target.value);
-            document.getElementById('speedValue').textContent = speedMultiplier + 'x';
-
-            if (isTraining) {
-                if (gameLoop) clearInterval(gameLoop);
-                const fps = Math.min(60 * speedMultiplier, 6000);
-                gameLoop = setInterval(update, 1000 / fps);
-            }
-        });
-
-        function initBricks() {
-            bricks = [];
-            for (let r = 0; r < BRICK_ROWS; r++) {
-                bricks[r] = [];
-                for (let c = 0; c < BRICK_COLS; c++) {
-                    bricks[r][c] = { x: 0, y: 0, status: 1 };
-                }
-            }
-        }
-
-        // 단순화된 상태 표현 (3차원)
-        function getState() {
-            // 공의 x 위치 (10구간)
-            const ballX = Math.floor(ball.x / 60);
-
-            // 패들의 x 위치 (10구간)
-            const paddleX = Math.floor(paddle.x / 60);
-
-            // 공의 x 방향
-            const ballDirX = ball.dx > 0 ? 1 : 0;
-
-            return `${ballX}-${paddleX}-${ballDirX}`;
-        }
-
-        function getQValue(state, action) {
-            const key = `${state}-${action}`;
-            return qTable[key] || 0;
-        }
-
-        function setQValue(state, action, value) {
-            const key = `${state}-${action}`;
-            qTable[key] = value;
-        }
-
-        function chooseAction(state) {
-            if (Math.random() < epsilon) {
-                return ACTIONS[Math.floor(Math.random() * ACTIONS.length)];
-            }
-
-            let bestAction = ACTIONS[0];
-            let bestValue = getQValue(state, bestAction);
-
-            for (let action of ACTIONS) {
-                const value = getQValue(state, action);
-                if (value > bestValue) {
-                    bestValue = value;
-                    bestAction = action;
-                }
-            }
-
-            return bestAction;
-        }
-
-        function updateQValue(state, action, reward, nextState, done) {
-            const currentQ = getQValue(state, action);
-
-            let maxNextQ = -Infinity;
-            if (!done) {
-                for (let nextAction of ACTIONS) {
-                    const q = getQValue(nextState, nextAction);
-                    if (q > maxNextQ) maxNextQ = q;
-                }
-            } else {
-                maxNextQ = 0;
-            }
-
-            const newQ = currentQ + alpha * (reward + gamma * maxNextQ - currentQ);
-            setQValue(state, action, newQ);
-        }
-
-        function drawBricks() {
-            for (let r = 0; r < BRICK_ROWS; r++) {
-                for (let c = 0; c < BRICK_COLS; c++) {
-                    if (bricks[r][c].status === 1) {
-                        const brickX = c * (BRICK_WIDTH + BRICK_PADDING) + BRICK_OFFSET_LEFT;
-                        const brickY = r * (BRICK_HEIGHT + BRICK_PADDING) + BRICK_OFFSET_TOP;
-                        bricks[r][c].x = brickX;
-                        bricks[r][c].y = brickY;
-
-                        const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', 
-                                       '#F38181', '#AA96DA', '#FCBAD3', '#FFFFD2', '#A8E6CF'];
-                        ctx.fillStyle = colors[r % colors.length];
-                        ctx.fillRect(brickX, brickY, BRICK_WIDTH, BRICK_HEIGHT);
-
-                        ctx.strokeStyle = '#fff';
-                        ctx.lineWidth = 1;
-                        ctx.strokeRect(brickX, brickY, BRICK_WIDTH, BRICK_HEIGHT);
-                    }
-                }
-            }
-        }
-
-        function drawBall() {
-            ctx.beginPath();
-            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-            ctx.fillStyle = '#FFD700';
-            ctx.fill();
-            ctx.strokeStyle = '#FFA500';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            ctx.closePath();
-        }
-
-        function drawPaddle() {
-            ctx.fillStyle = '#4CAF50';
-            ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
-            ctx.strokeStyle = '#2E7D32';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(paddle.x, paddle.y, paddle.width, paddle.height);
-        }
-
-        function collisionDetection() {
-            let reward = 0;
-            for (let r = 0; r < BRICK_ROWS; r++) {
-                for (let c = 0; c < BRICK_COLS; c++) {
-                    const b = bricks[r][c];
-                    if (b.status === 1) {
-                        if (ball.x > b.x && ball.x < b.x + BRICK_WIDTH &&
-                            ball.y > b.y && ball.y < b.y + BRICK_HEIGHT) {
-                            ball.dy = -ball.dy;
-                            b.status = 0;
-                            score += 5;
-                            reward = 5;
-                            bricksHit++;
-                            totalBricksHit++;
-                        }
-                    }
-                }
-            }
-            return reward;
-        }
-
-        function checkGameClear() {
-            for (let r = 0; r < BRICK_ROWS; r++) {
-                for (let c = 0; c < BRICK_COLS; c++) {
-                    if (bricks[r][c].status === 1) return false;
-                }
-            }
-            return true;
-        }
-
-        function draw() {
-            ctx.fillStyle = '#000';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            drawBricks();
-            drawBall();
-            drawPaddle();
-
-            ctx.fillStyle = '#fff';
-            ctx.font = '14px Arial';
-            ctx.fillText('점수: ' + score, 10, 20);
-            ctx.fillText('벽돌: ' + bricksHit, 500, 20);
-        }
-
-        function update() {
-            const state = getState();
-            let action = 0;
-            let reward = 0;
-            stepCount++;
-            frameCount++;
-
-            if (isManual) {
-                if (rightPressed && paddle.x < canvas.width - paddle.width) {
-                    paddle.x += 7;
-                } else if (leftPressed && paddle.x > 0) {
-                    paddle.x -= 7;
-                }
-            } else if (isTraining || isTesting) {
-                action = chooseAction(state);
-                const moveAmount = action * 10;  // 더 빠른 이동
-                paddle.x += moveAmount;
-                paddle.x = Math.max(0, Math.min(canvas.width - paddle.width, paddle.x));
-
-                // 핵심: 거리 기반 보상 (공이 패들에 가까울수록 보상)
-                const distance = Math.abs(ball.x - (paddle.x + paddle.width / 2));
-                const maxDistance = canvas.width / 2;
-                const proximityReward = (1 - distance / maxDistance) * 0.5;  // 0~0.5
-                reward += proximityReward;
-
-                // 올바른 방향으로 움직이면 추가 보상
-                const ballToPaddle = (paddle.x + paddle.width / 2) - ball.x;
-                if ((action === -1 && ballToPaddle < 0) || (action === 1 && ballToPaddle > 0)) {
-                    reward += 0.5;
-                } else if (action !== 0) {
-                    reward -= 0.2;  // 잘못된 방향 페널티
-                }
-            }
-
-            ball.x += ball.dx;
-            ball.y += ball.dy;
-
-            // 벽 충돌
-            if (ball.x + ball.dx > canvas.width - ball.radius || ball.x + ball.dx < ball.radius) {
-                ball.dx = -ball.dx;
-            }
-            if (ball.y + ball.dy < ball.radius) {
-                ball.dy = -ball.dy;
-            }
-
-            // 패들 충돌 - 가장 중요한 보상!
-            if (ball.y + ball.dy > paddle.y - ball.radius && ball.y < paddle.y + paddle.height) {
-                if (ball.x > paddle.x && ball.x < paddle.x + paddle.width) {
-                    ball.dy = -ball.dy;
-                    ball.y = paddle.y - ball.radius;
-                    reward += 10;  // 큰 보상
-                    successCount++;
-                }
-            }
-
-            // 하단 경계 - 게임 오버
-            if (ball.y + ball.radius > canvas.height) {
-                reward = -10;  // 페널티
-                const nextState = getState();
-                if (isTraining) {
-                    updateQValue(state, action, reward, nextState, true);
-                }
-                episodeReward += reward;
-                endEpisode();
-                return;
-            }
-
-            const brickReward = collisionDetection();
-            reward += brickReward;
-
-            // 게임 클리어 또는 타임아웃
-            if (checkGameClear() || stepCount > 10000) {
-                if (checkGameClear()) reward += 100;
-                const nextState = getState();
-                if (isTraining) {
-                    updateQValue(state, action, reward, nextState, true);
-                }
-                episodeReward += reward;
-                endEpisode();
-                return;
-            }
-
-            if (isTraining) {
-                const nextState = getState();
-                updateQValue(state, action, reward, nextState, false);
-            }
-
-            episodeReward += reward;
-
-            // 렌더링 최적화: 매 프레임이 아닌 일정 간격으로만 그리기
-            if (frameCount % Math.max(1, Math.floor(speedMultiplier / 10)) === 0) {
-                draw();
-            }
-        }
-
-        function endEpisode() {
-            episode++;
-            totalScore += score;
-            totalReward += episodeReward;
-            bestScore = Math.max(bestScore, score);
-
-            if (isTraining && epsilon > epsilonMin) {
-                epsilon = Math.max(epsilonMin, epsilon * epsilonDecay);
-            }
-
-            updateStats();
-
-            if (isTraining) {
-                setTimeout(resetRound, 10);
-            } else {
-                if (gameLoop) clearInterval(gameLoop);
-                document.getElementById('modeIndicator').textContent = '게임 종료';
-                document.getElementById('modeIndicator').className = 'mode-indicator';
-            }
-        }
-
-        function resetRound() {
-            paddle.x = canvas.width / 2 - PADDLE_WIDTH / 2;
-            paddle.y = canvas.height - 50;
-            ball.x = canvas.width / 2;
-            ball.y = canvas.height - 70;
-            ball.dx = (Math.random() > 0.5 ? 1 : -1) * BALL_SPEED;
-            ball.dy = -BALL_SPEED;
-            score = 0;
-            bricksHit = 0;
-            episodeReward = 0;
-            stepCount = 0;
-            frameCount = 0;
-            initBricks();
-        }
-
-        function updateStats() {
-            document.getElementById('episode').textContent = episode;
-            document.getElementById('score').textContent = score;
-            document.getElementById('bestScore').textContent = bestScore;
-            const avgScore = episode > 0 ? Math.round(totalScore / episode) : 0;
-            document.getElementById('avgScore').textContent = avgScore;
-            document.getElementById('bricksHit').textContent = totalBricksHit;
-
-            const successRate = episode > 0 ? Math.round((successCount / episode) * 100) : 0;
-            document.getElementById('successRate').textContent = successRate + '%';
-
-            document.getElementById('epsilonValue').textContent = epsilon.toFixed(2);
-
-            const rewardEl = document.getElementById('episodeReward');
-            rewardEl.textContent = episodeReward.toFixed(1);
-            rewardEl.className = 'stat-value ' + (episodeReward >= 0 ? 'positive' : 'negative');
-
-            const avgReward = episode > 0 ? (totalReward / episode).toFixed(1) : 0;
-            const avgRewardEl = document.getElementById('avgReward');
-            avgRewardEl.textContent = avgReward;
-            avgRewardEl.className = 'stat-value ' + (avgReward >= 0 ? 'positive' : 'negative');
-
-            const progress = Math.min(100, Math.round((episode / 500) * 100));
-            document.getElementById('progressBar').style.width = progress + '%';
-            document.getElementById('progressText').textContent = progress + '%';
-        }
-
-        function startTraining() {
-            isTraining = true;
-            isTesting = false;
-            isManual = false;
-
-            document.getElementById('trainBtn').disabled = true;
-            document.getElementById('stopBtn').disabled = false;
-            document.getElementById('testBtn').disabled = true;
-            document.getElementById('playBtn').disabled = true;
-            document.getElementById('modeIndicator').textContent = '🎓 학습 모드 - ' + speedMultiplier + 'x';
-            document.getElementById('modeIndicator').className = 'mode-indicator training';
-
-            resetRound();
-            if (gameLoop) clearInterval(gameLoop);
-            const fps = Math.min(60 * speedMultiplier, 6000);
-            gameLoop = setInterval(update, 1000 / fps);
-        }
-
-        function stopTraining() {
-            isTraining = false;
-            if (gameLoop) clearInterval(gameLoop);
-
-            document.getElementById('trainBtn').disabled = false;
-            document.getElementById('stopBtn').disabled = true;
-            document.getElementById('testBtn').disabled = false;
-            document.getElementById('playBtn').disabled = false;
-            document.getElementById('modeIndicator').textContent = '일시정지';
-            document.getElementById('modeIndicator').className = 'mode-indicator';
-        }
-
-        function testAgent() {
-            isTraining = false;
-            isTesting = true;
-            isManual = false;
-            const savedEpsilon = epsilon;
-            epsilon = 0;
-
-            document.getElementById('trainBtn').disabled = true;
-            document.getElementById('testBtn').disabled = true;
-            document.getElementById('playBtn').disabled = true;
-            document.getElementById('modeIndicator').textContent = '🎯 테스트 모드';
-            document.getElementById('modeIndicator').className = 'mode-indicator testing';
-
-            resetRound();
-            if (gameLoop) clearInterval(gameLoop);
-            gameLoop = setInterval(update, 1000 / 60);
-
-            setTimeout(() => { if (!isTesting) epsilon = savedEpsilon; }, 100);
-        }
-
-        function playManually() {
-            isTraining = false;
-            isTesting = false;
-            isManual = true;
-
-            document.getElementById('trainBtn').disabled = true;
-            document.getElementById('testBtn').disabled = true;
-            document.getElementById('playBtn').disabled = true;
-            document.getElementById('modeIndicator').textContent = '🎮 수동 플레이';
-            document.getElementById('modeIndicator').className = 'mode-indicator';
-
-            resetRound();
-            if (gameLoop) clearInterval(gameLoop);
-            gameLoop = setInterval(update, 1000 / 60);
-        }
-
-        function resetGame() {
-            if (gameLoop) clearInterval(gameLoop);
-
-            isTraining = false;
-            isTesting = false;
-            isManual = false;
-            qTable = {};
-            episode = 0;
-            score = 0;
-            bestScore = 0;
-            totalScore = 0;
-            totalReward = 0;
-            episodeReward = 0;
-            bricksHit = 0;
-            totalBricksHit = 0;
-            successCount = 0;
-            stepCount = 0;
-            frameCount = 0;
-            epsilon = 0.1;
-
-            document.getElementById('trainBtn').disabled = false;
-            document.getElementById('stopBtn').disabled = true;
-            document.getElementById('testBtn').disabled = false;
-            document.getElementById('playBtn').disabled = false;
-            document.getElementById('modeIndicator').textContent = '초기화 완료';
-            document.getElementById('modeIndicator').className = 'mode-indicator';
-
-            resetRound();
-            updateStats();
-            draw();
-        }
-
-        initBricks();
-        draw();
-        updateStats();
-    </script>
+<div class="container">
+<h1>🎮 Q-Learning 벽돌깨기</h1>
+<p class="subtitle">강화학습으로 AI가 벽돌깨기를 스스로 학습합니다</p>
+
+<div class="game-area">
+<canvas id="gameCanvas" width="400" height="500"></canvas>
+</div>
+
+<div class="stats">
+<div class="stat-box">
+<div class="stat-label">에피소드</div>
+<div class="stat-value" id="episode">0</div>
+</div>
+<div class="stat-box">
+<div class="stat-label">현재 점수</div>
+<div class="stat-value" id="score">0</div>
+</div>
+<div class="stat-box">
+<div class="stat-label">평균 점수</div>
+<div class="stat-value" id="avgScore">0</div>
+</div>
+<div class="stat-box">
+<div class="stat-label">최고 점수</div>
+<div class="stat-value" id="maxScore">0</div>
+</div>
+<div class="stat-box">
+<div class="stat-label">성공률</div>
+<div class="stat-value" id="successRate">0%</div>
+</div>
+<div class="stat-box">
+<div class="stat-label">Q-테이블</div>
+<div class="stat-value" id="qTableSize">0</div>
+</div>
+</div>
+
+<div class="speed-control">
+<label for="speed">학습 속도:</label>
+<input type="range" id="speed" min="1" max="10" value="5">
+<span id="speedValue">5x</span>
+</div>
+
+<div class="controls">
+<button id="trainBtn" onclick="startTraining()">🎓 학습 시작</button>
+<button id="stopBtn" onclick="stopTraining()" disabled>⏸️ 정지</button>
+<button id="resetBtn" onclick="resetLearning()">🔄 초기화</button>
+<button id="testBtn" onclick="testAgent()">🎯 테스트 (탐험 끄기)</button>
+<button id="qBtn" onclick="toggleQDisplay()">📊 Q값 표시</button>
+</div>
+
+<div class="q-info">
+<strong>📈 Q-Learning 상태 단순화:</strong><br>
+• <strong>상태</strong>: (공 X 위치 10구간) × (공 방향 2가지) × (패들 위치 10구간) = 200가지<br>
+• <strong>행동</strong>: 왼쪽(-1), 정지(0), 오른쪽(+1) = 3가지<br>
+• <strong>Q-테이블 크기</strong>: 200 × 3 = 600개 (관리 가능!)<br>
+• <strong>보상</strong>: 벽돌 깨기 +10, 공 받기 +5, 공 놓침 -100
+</div>
+
+<div class="info">
+<strong>📚 학습 원리:</strong><br>
+• AI가 공의 위치와 방향을 보고 패들을 어디로 움직일지 학습합니다<br>
+• 처음엔 무작위로 움직이다가 점점 공을 받는 법을 배웁니다<br>
+• 50 에피소드 정도면 기본적인 공 받기를 학습합니다<br>
+• <strong>학습률(α)</strong>: 0.3, <strong>할인율(γ)</strong>: 0.95, <strong>탐험율(ε)</strong>: 0.1
+</div>
+</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// 게임 설정
+const PADDLE_WIDTH = 80;
+const PADDLE_HEIGHT = 10;
+const BALL_RADIUS = 6;
+const BRICK_ROWS = 5;
+const BRICK_COLS = 8;
+const BRICK_WIDTH = 45;
+const BRICK_HEIGHT = 15;
+const BRICK_PADDING = 5;
+const BRICK_OFFSET_TOP = 50;
+const BRICK_OFFSET_LEFT = 10;
+
+// Q-Learning 설정
+const ALPHA = 0.3;  // 학습률
+const GAMMA = 0.95; // 할인율
+let EPSILON = 0.1;  // 탐험율
+const X_ZONES = 10;
+const PADDLE_ZONES = 10;
+const ACTIONS = [-1, 0, 1]; // 왼쪽, 정지, 오른쪽
+
+// 게임 상태
+let paddle = { x: canvas.width / 2 - PADDLE_WIDTH / 2, y: canvas.height - 30, dx: 0 };
+let ball = { x: canvas.width / 2, y: canvas.height - 50, dx: 3, dy: -3 };
+let bricks = [];
+let score = 0;
+let lives = 3;
+
+// 학습 상태
+let qTable = {};
+let episode = 0;
+let totalScore = 0;
+let maxScore = 0;
+let successCount = 0;
+let isTraining = false;
+let showQ = false;
+let gameInterval = null;
+let currentState = null;
+let currentAction = null;
+
+// 벽돌 초기화
+function initBricks() {
+bricks = [];
+for (let row = 0; row < BRICK_ROWS; row++) {
+bricks[row] = [];
+for (let col = 0; col < BRICK_COLS; col++) {
+bricks[row][col] = { x: 0, y: 0, status: 1 };
+}
+}
+}
+
+// 상태 키 생성
+function getStateKey(ballX, ballDX, paddleX) {
+const ballZone = Math.floor(ballX / (canvas.width / X_ZONES));
+const ballDir = ballDX > 0 ? 1 : 0; // 오른쪽:1, 왼쪽:0
+const paddleZone = Math.floor(paddleX / (canvas.width / PADDLE_ZONES));
+return `${ballZone}-${ballDir}-${paddleZone}`;
+}
+
+// Q값 가져오기
+function getQValue(state, action) {
+const key = `${state}-${action}`;
+return qTable[key] || 0;
+}
+
+// Q값 설정
+function setQValue(state, action, value) {
+const key = `${state}-${action}`;
+qTable[key] = value;
+}
+
+// 행동 선택 (ε-greedy)
+function chooseAction(state) {
+if (Math.random() < EPSILON) {
+return ACTIONS[Math.floor(Math.random() * ACTIONS.length)];
+}
+
+let bestAction = ACTIONS[0];
+let bestValue = getQValue(state, bestAction);
+
+for (let action of ACTIONS) {
+const value = getQValue(state, action);
+if (value > bestValue) {
+bestValue = value;
+bestAction = action;
+}
+}
+return bestAction;
+}
+
+// Q값 업데이트
+function updateQValue(state, action, reward, nextState) {
+const currentQ = getQValue(state, action);
+
+let maxNextQ = -Infinity;
+for (let nextAction of ACTIONS) {
+const q = getQValue(nextState, nextAction);
+if (q > maxNextQ) maxNextQ = q;
+}
+
+const newQ = currentQ + ALPHA * (reward + GAMMA * maxNextQ - currentQ);
+setQValue(state, action, newQ);
+}
+
+// 벽돌 그리기
+function drawBricks() {
+for (let row = 0; row < BRICK_ROWS; row++) {
+for (let col = 0; col < BRICK_COLS; col++) {
+if (bricks[row][col].status === 1) {
+const brickX = col * (BRICK_WIDTH + BRICK_PADDING) + BRICK_OFFSET_LEFT;
+const brickY = row * (BRICK_HEIGHT + BRICK_PADDING) + BRICK_OFFSET_TOP;
+bricks[row][col].x = brickX;
+bricks[row][col].y = brickY;
+
+ctx.fillStyle = '#4CAF50';
+ctx.fillRect(brickX, brickY, BRICK_WIDTH, BRICK_HEIGHT);
+ctx.strokeStyle = '#fff';
+ctx.strokeRect(brickX, brickY, BRICK_WIDTH, BRICK_HEIGHT);
+}
+}
+}
+}
+
+// 패들 그리기
+function drawPaddle() {
+ctx.fillStyle = '#2196F3';
+ctx.fillRect(paddle.x, paddle.y, PADDLE_WIDTH, PADDLE_HEIGHT);
+}
+
+// 공 그리기
+function drawBall() {
+ctx.beginPath();
+ctx.arc(ball.x, ball.y, BALL_RADIUS, 0, Math.PI * 2);
+ctx.fillStyle = '#FFD700';
+ctx.fill();
+ctx.closePath();
+}
+
+// Q값 표시
+function drawQValues() {
+if (!showQ) return;
+
+const state = getStateKey(ball.x, ball.dx, paddle.x);
+const qLeft = getQValue(state, -1);
+const qStay = getQValue(state, 0);
+const qRight = getQValue(state, 1);
+
+ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+ctx.fillRect(10, canvas.height - 80, 150, 70);
+ctx.fillStyle = '#333';
+ctx.font = '12px Arial';
+ctx.fillText(`Q값 (현재 상태):`, 20, canvas.height - 65);
+ctx.fillText(`← 왼쪽: ${qLeft.toFixed(1)}`, 20, canvas.height - 50);
+ctx.fillText(`■ 정지: ${qStay.toFixed(1)}`, 20, canvas.height - 35);
+ctx.fillText(`→ 오른쪽: ${qRight.toFixed(1)}`, 20, canvas.height - 20);
+}
+
+// 충돌 감지
+function collisionDetection() {
+let reward = -0.1; // 스텝 페널티
+
+for (let row = 0; row < BRICK_ROWS; row++) {
+for (let col = 0; col < BRICK_COLS; col++) {
+const brick = bricks[row][col];
+if (brick.status === 1) {
+if (ball.x > brick.x && ball.x < brick.x + BRICK_WIDTH &&
+ball.y > brick.y && ball.y < brick.y + BRICK_HEIGHT) {
+ball.dy = -ball.dy;
+brick.status = 0;
+score += 10;
+reward += 10; // 벽돌 깨기 보상
+}
+}
+}
+}
+
+return reward;
+}
+
+// 게임 그리기
+function draw() {
+ctx.fillStyle = '#000';
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+drawBricks();
+drawPaddle();
+drawBall();
+drawQValues();
+
+// 점수 표시
+ctx.fillStyle = '#fff';
+ctx.font = '16px Arial';
+ctx.fillText(`점수: ${score}`, 10, 20);
+ctx.fillText(`에피소드: ${episode}`, 10, 40);
+}
+
+// 게임 업데이트
+function update() {
+const state = getStateKey(ball.x, ball.dx, paddle.x);
+const action = chooseAction(state);
+
+// 패들 이동
+paddle.dx = action * 8;
+paddle.x += paddle.dx;
+
+// 패들 경계
+if (paddle.x < 0) paddle.x = 0;
+if (paddle.x + PADDLE_WIDTH > canvas.width) paddle.x = canvas.width - PADDLE_WIDTH;
+
+// 공 이동
+ball.x += ball.dx;
+ball.y += ball.dy;
+
+// 벽 충돌
+if (ball.x + BALL_RADIUS > canvas.width || ball.x - BALL_RADIUS < 0) {
+ball.dx = -ball.dx;
+}
+if (ball.y - BALL_RADIUS < 0) {
+ball.dy = -ball.dy;
+}
+
+// 벽돌 충돌 및 보상
+let reward = collisionDetection();
+
+// 패들 충돌
+if (ball.y + BALL_RADIUS > paddle.y && 
+ball.x > paddle.x && 
+ball.x < paddle.x + PADDLE_WIDTH &&
+ball.dy > 0) {
+ball.dy = -ball.dy;
+reward += 5; // 공 받기 보상
+}
+
+// 공 놓침
+if (ball.y + BALL_RADIUS > canvas.height) {
+reward = -100; // 큰 페널티
+const nextState = getStateKey(ball.x, ball.dx, paddle.x);
+updateQValue(state, action, reward, nextState);
+
+lives--;
+if (lives <= 0) {
+endEpisode();
+return false;
+}
+resetBall();
+return true;
+}
+
+// 모든 벽돌 깨기
+if (bricks.every(row => row.every(brick => brick.status === 0))) {
+reward += 100; // 완료 보너스
+successCount++;
+const nextState = getStateKey(ball.x, ball.dx, paddle.x);
+updateQValue(state, action, reward, nextState);
+endEpisode();
+return false;
+}
+
+// Q값 업데이트
+const nextState = getStateKey(ball.x, ball.dx, paddle.x);
+updateQValue(state, action, reward, nextState);
+
+return true;
+}
+
+// 공 리셋
+function resetBall() {
+ball.x = canvas.width / 2;
+ball.y = canvas.height - 50;
+ball.dx = (Math.random() > 0.5 ? 1 : -1) * 3;
+ball.dy = -3;
+}
+
+// 게임 루프
+function gameLoop() {
+draw();
+if (isTraining) {
+const speed = parseInt(document.getElementById('speed').value);
+for (let i = 0; i < speed; i++) {
+if (!update()) break;
+}
+updateStats();
+}
+}
+
+// 에피소드 종료
+function endEpisode() {
+episode++;
+totalScore += score;
+maxScore = Math.max(maxScore, score);
+updateStats();
+
+if (isTraining) {
+setTimeout(() => {
+initGame();
+}, 200);
+}
+}
+
+// 게임 초기화
+function initGame() {
+initBricks();
+paddle.x = canvas.width / 2 - PADDLE_WIDTH / 2;
+resetBall();
+score = 0;
+lives = 3;
+}
+
+// 통계 업데이트
+function updateStats() {
+document.getElementById('episode').textContent = episode;
+document.getElementById('score').textContent = score;
+document.getElementById('avgScore').textContent = episode > 0 ? Math.round(totalScore / episode) : 0;
+document.getElementById('maxScore').textContent = maxScore;
+const successRate = episode > 0 ? Math.round((successCount / episode) * 100) : 0;
+document.getElementById('successRate').textContent = successRate + '%';
+document.getElementById('qTableSize').textContent = Object.keys(qTable).length;
+}
+
+// 학습 시작
+function startTraining() {
+isTraining = true;
+EPSILON = 0.1;
+document.getElementById('trainBtn').disabled = true;
+document.getElementById('stopBtn').disabled = false;
+document.getElementById('testBtn').disabled = true;
+
+if (!gameInterval) {
+initGame();
+gameInterval = setInterval(gameLoop, 1000 / 60);
+}
+}
+
+// 학습 정지
+function stopTraining() {
+isTraining = false;
+document.getElementById('trainBtn').disabled = false;
+document.getElementById('stopBtn').disabled = true;
+document.getElementById('testBtn').disabled = false;
+}
+
+// 학습 초기화
+function resetLearning() {
+stopTraining();
+qTable = {};
+episode = 0;
+totalScore = 0;
+maxScore = 0;
+successCount = 0;
+initGame();
+updateStats();
+}
+
+// 테스트 모드
+function testAgent() {
+stopTraining();
+EPSILON = 0; // 탐험 끄기
+isTraining = true;
+document.getElementById('trainBtn').disabled = true;
+document.getElementById('testBtn').disabled = true;
+
+if (!gameInterval) {
+initGame();
+gameInterval = setInterval(gameLoop, 1000 / 60);
+}
+
+setTimeout(() => {
+isTraining = false;
+EPSILON = 0.1;
+document.getElementById('trainBtn').disabled = false;
+document.getElementById('testBtn').disabled = false;
+}, 30000); // 30초 테스트
+}
+
+// Q값 표시 토글
+function toggleQDisplay() {
+showQ = !showQ;
+const btn = document.getElementById('qBtn');
+if (showQ) {
+btn.classList.add('active');
+btn.textContent = '📊 Q값✓';
+} else {
+btn.classList.remove('active');
+btn.textContent = '📊 Q값';
+}
+}
+
+// 속도 조절
+document.getElementById('speed').addEventListener('input', (e) => {
+document.getElementById('speedValue').textContent = e.target.value + 'x';
+});
+
+// 초기화
+initGame();
+updateStats();
+</script>
 </body>
 </html>
