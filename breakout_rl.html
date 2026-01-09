@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -53,10 +54,6 @@
             background: #555;
         }
 
-        .back-button:active {
-            transform: scale(0.95);
-        }
-
         .canvas-container {
             display: flex;
             justify-content: center;
@@ -104,7 +101,6 @@
         button:disabled {
             background: #ccc;
             cursor: not-allowed;
-            transform: none;
         }
 
         .stats {
@@ -152,7 +148,16 @@
             border-radius: 8px;
             margin: 15px 0;
             border-left: 4px solid #2196F3;
-            font-size: 14px;
+            font-size: 13px;
+        }
+
+        .warning {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #ffc107;
+            font-size: 13px;
         }
 
         .progress-bar {
@@ -213,7 +218,7 @@
         }
 
         input[type="range"] {
-            width: 200px;
+            width: 300px;
             max-width: 100%;
             height: 6px;
             border-radius: 3px;
@@ -230,11 +235,6 @@
             border-radius: 50%;
             background: #667eea;
             cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        input[type="range"]::-webkit-slider-thumb:active {
-            transform: scale(1.2);
         }
 
         input[type="range"]::-moz-range-thumb {
@@ -247,7 +247,7 @@
         }
 
         .speed-value {
-            min-width: 60px;
+            min-width: 80px;
             text-align: center;
             font-weight: bold;
             color: #667eea;
@@ -274,7 +274,6 @@
             justify-content: center;
             cursor: pointer;
             user-select: none;
-            -webkit-user-select: none;
             touch-action: none;
         }
 
@@ -283,122 +282,12 @@
             transform: scale(0.95);
         }
 
-        .learning-info {
-            background: #fff3cd;
-            padding: 12px;
-            border-radius: 8px;
-            margin: 15px 0;
-            border-left: 4px solid #ffc107;
-            font-size: 13px;
-        }
-
-        /* 모바일 최적화 */
         @media (max-width: 768px) {
-            body {
-                padding: 10px;
-            }
-
-            .container {
-                padding: 20px 15px;
-            }
-
-            h1 {
-                font-size: 22px;
-            }
-
-            .subtitle {
-                font-size: 13px;
-            }
-
-            #gameCanvas {
-                border-width: 2px;
-            }
-
-            button {
-                padding: 10px 16px;
-                font-size: 14px;
-            }
-
             .stats {
                 grid-template-columns: repeat(2, 1fr);
-                gap: 10px;
             }
-
-            .stat-box {
-                padding: 10px;
-            }
-
-            .stat-value {
-                font-size: 20px;
-            }
-
-            .stat-label {
-                font-size: 12px;
-            }
-
-            .info {
-                font-size: 12px;
-                padding: 12px;
-            }
-
-            .speed-control {
-                padding: 12px;
-                gap: 10px;
-            }
-
-            .speed-control label {
-                font-size: 14px;
-            }
-
-            input[type="range"] {
-                width: 150px;
-            }
-
             .touch-controls {
                 display: flex;
-            }
-
-            .mode-indicator {
-                font-size: 13px;
-                padding: 8px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .container {
-                padding: 15px 10px;
-            }
-
-            h1 {
-                font-size: 20px;
-            }
-
-            .subtitle {
-                font-size: 12px;
-            }
-
-            button {
-                padding: 8px 12px;
-                font-size: 13px;
-            }
-
-            .controls {
-                gap: 8px;
-            }
-
-            .stat-value {
-                font-size: 18px;
-            }
-
-            .info {
-                font-size: 11px;
-                line-height: 1.5;
-            }
-
-            .touch-btn {
-                width: 60px;
-                height: 60px;
-                font-size: 20px;
             }
         }
     </style>
@@ -408,7 +297,7 @@
         <a href="index.html" class="back-button">← 메인으로</a>
 
         <h1>🧱 벽돌깨기 강화학습 (개선 버전)</h1>
-        <p class="subtitle">향상된 보상 시스템과 Epsilon Decay로 더 빠른 학습</p>
+        <p class="subtitle">개선된 상태 표현과 보상 함수로 효과적인 학습 (벽돌 160개)</p>
 
         <div id="modeIndicator" class="mode-indicator">대기 중</div>
 
@@ -439,20 +328,24 @@
                 <div class="stat-value" id="avgScore">0</div>
             </div>
             <div class="stat-box">
+                <div class="stat-label">벽돌 깬 수</div>
+                <div class="stat-value" id="bricksHit">0</div>
+            </div>
+            <div class="stat-box">
                 <div class="stat-label">남은 벽돌</div>
                 <div class="stat-value" id="bricksLeft">160</div>
             </div>
             <div class="stat-box highlight">
                 <div class="stat-label">탐험율 (ε)</div>
-                <div class="stat-value" id="epsilonValue">0.90</div>
+                <div class="stat-value" id="epsilonValue">0.20</div>
             </div>
             <div class="stat-box highlight">
                 <div class="stat-label">에피소드 보상</div>
                 <div class="stat-value" id="episodeReward">0</div>
             </div>
             <div class="stat-box highlight">
-                <div class="stat-label">학습 상태</div>
-                <div class="stat-value" id="learningStatus" style="font-size: 16px;">대기</div>
+                <div class="stat-label">Q-테이블 크기</div>
+                <div class="stat-value" id="qTableSize">0</div>
             </div>
         </div>
 
@@ -462,17 +355,10 @@
             </div>
         </div>
 
-        <div class="learning-info">
-            <strong>📊 학습 진행 상황:</strong><br>
-            • 초반(ε=0.9): 높은 탐험율로 다양한 전략 시도<br>
-            • 중반(ε=0.3): 탐험과 활용 균형<br>
-            • 후반(ε=0.1): 학습된 최적 전략 활용
-        </div>
-
         <div class="speed-control">
             <label for="speed">⚡ 학습 속도:</label>
-            <input type="range" id="speed" min="1" max="10" value="1" step="1">
-            <span class="speed-value" id="speedValue">1x</span>
+            <input type="range" id="speed" min="1" max="100" value="10" step="1">
+            <span class="speed-value" id="speedValue">10x</span>
         </div>
 
         <div class="controls">
@@ -483,14 +369,24 @@
             <button id="resetBtn" onclick="resetGame()">🔄 초기화</button>
         </div>
 
+        <div class="warning">
+            <strong>⚠️ 개선된 학습 로직:</strong><br>
+            • <strong>상태 표현 개선</strong>: 공과 패들의 상대적 위치를 더 세밀하게 인코딩<br>
+            • <strong>보상 세이핑</strong>: 공이 패들 방향으로 움직이면 작은 보상 (+0.1)<br>
+            • <strong>낮은 초기 탐험율</strong>: ε=0.2로 시작 (무작위 행동 20%)<br>
+            • <strong>느린 Epsilon Decay</strong>: 0.999로 변경 (충분한 학습 시간)<br>
+            • <strong>높은 학습률</strong>: α=0.3 (빠른 업데이트)<br>
+            • <strong>벽돌 160개</strong>: 10행 × 16열 = 160개 유지
+        </div>
+
         <div class="info">
             <strong>📚 개선된 보상 시스템:</strong><br>
-            • <strong>벽돌 파괴</strong>: +50 (기존 +10의 5배)<br>
-            • <strong>패들 히트</strong>: +5 (공을 잘 받으면 보상)<br>
-            • <strong>공 놓침</strong>: -50 (기존 -10의 5배)<br>
-            • <strong>게임 클리어</strong>: +500 (기존 +100의 5배)<br>
-            • <strong>Epsilon Decay</strong>: 0.9 → 0.1 (학습 진행에 따라 감소)<br>
-            • <strong>학습률</strong>: α=0.2 (빠른 학습), <strong>할인율</strong>: γ=0.95
+            • <strong>벽돌 파괴</strong>: +10점<br>
+            • <strong>패들 히트</strong>: +2점<br>
+            • <strong>공을 패들 방향으로</strong>: +0.1점 (보상 세이핑)<br>
+            • <strong>공 놓침</strong>: -5점<br>
+            • <strong>스텝 페널티</strong>: -0.01점<br>
+            • <strong>학습률</strong>: α=0.3, <strong>할인율</strong>: γ=0.99
         </div>
     </div>
 
@@ -515,39 +411,53 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        // 게임 설정
+        // 게임 설정 - 벽돌 160개 유지
         const PADDLE_WIDTH = 100;
         const PADDLE_HEIGHT = 15;
         const BALL_RADIUS = 8;
-        const BRICK_ROWS = 10;
-        const BRICK_COLS = 16;
+        const BRICK_ROWS = 10;      // 160개 유지
+        const BRICK_COLS = 16;      // 10 × 16 = 160
         const BRICK_WIDTH = 35;
         const BRICK_HEIGHT = 10;
         const BRICK_PADDING = 2.5;
         const BRICK_OFFSET_TOP = 30;
         const BRICK_OFFSET_LEFT = 7.5;
 
-        let paddle = { x: canvas.width / 2 - PADDLE_WIDTH / 2, y: canvas.height - 30, width: PADDLE_WIDTH, height: PADDLE_HEIGHT };
-        let ball = { x: canvas.width / 2, y: canvas.height - 50, dx: 3, dy: -3, radius: BALL_RADIUS };
+        let paddle = { 
+            x: canvas.width / 2 - PADDLE_WIDTH / 2, 
+            y: canvas.height - 50,
+            width: PADDLE_WIDTH, 
+            height: PADDLE_HEIGHT 
+        };
+        let ball = { 
+            x: canvas.width / 2, 
+            y: canvas.height - 70,
+            dx: 4, 
+            dy: -4, 
+            radius: BALL_RADIUS 
+        };
         let bricks = [];
         let score = 0;
         let episode = 0;
         let bestScore = 0;
         let totalScore = 0;
         let episodeReward = 0;
+        let bricksHit = 0;
+        let totalBricksHit = 0;
         let isTraining = false;
         let isTesting = false;
         let isManual = false;
         let gameLoop = null;
-        let speedMultiplier = 1;
+        let speedMultiplier = 10;
+        let stepCount = 0;
 
         let qTable = {};
         const ACTIONS = [-1, 0, 1];
-        const alpha = 0.2;  // 학습률 증가 (0.1 → 0.2)
-        const gamma = 0.95; // 할인율 증가 (0.9 → 0.95)
-        let epsilon = 0.9;  // 초기 탐험율 높게 시작
-        const epsilonMin = 0.1;
-        const epsilonDecay = 0.995; // 에피소드마다 감소
+        const alpha = 0.3;
+        const gamma = 0.99;
+        let epsilon = 0.2;
+        const epsilonMin = 0.05;
+        const epsilonDecay = 0.999;
 
         let rightPressed = false;
         let leftPressed = false;
@@ -600,7 +510,7 @@
 
             if (isTraining) {
                 if (gameLoop) clearInterval(gameLoop);
-                const fps = Math.min(60 * speedMultiplier, 300);
+                const fps = Math.min(60 * speedMultiplier, 6000);
                 gameLoop = setInterval(update, 1000 / fps);
             }
         });
@@ -615,13 +525,27 @@
             }
         }
 
+        // 개선된 상태 표현
         function getState() {
-            const ballXBucket = Math.floor(ball.x / 100);
-            const paddleXBucket = Math.floor(paddle.x / 100);
-            const ballDirX = ball.dx > 0 ? 1 : 0;
-            const ballYBucket = Math.floor(ball.y / 100);
+            // 공과 패들의 상대적 x 위치
+            const relativeX = Math.floor((ball.x - paddle.x) / 20);
 
-            return `${ballXBucket}-${paddleXBucket}-${ballDirX}-${ballYBucket}`;
+            // 공의 절대 x 위치 구간
+            const ballXZone = Math.floor(ball.x / 150);
+
+            // 공의 y 위치 구간
+            const ballYZone = Math.floor(ball.y / 100);
+
+            // 공의 x 방향
+            const ballDirX = ball.dx > 0 ? 1 : 0;
+
+            // 공의 y 방향
+            const ballDirY = ball.dy > 0 ? 1 : 0;
+
+            // 패들 위치 구간
+            const paddleZone = Math.floor(paddle.x / 100);
+
+            return `${relativeX}_${ballXZone}_${ballYZone}_${ballDirX}_${ballDirY}_${paddleZone}`;
         }
 
         function getQValue(state, action) {
@@ -721,8 +645,10 @@
                             ball.y > b.y && ball.y < b.y + BRICK_HEIGHT) {
                             ball.dy = -ball.dy;
                             b.status = 0;
-                            score += 50;  // 증가: 10 → 50
-                            reward = 50;  // 증가: 10 → 50
+                            score += 10;
+                            reward = 10;
+                            bricksHit++;
+                            totalBricksHit++;
                         }
                     }
                 }
@@ -768,7 +694,8 @@
         function update() {
             const state = getState();
             let action = 0;
-            let reward = 0;
+            let reward = -0.01;  // 스텝 페널티
+            stepCount++;
 
             if (isManual) {
                 if (rightPressed && paddle.x < canvas.width - paddle.width) {
@@ -778,8 +705,15 @@
                 }
             } else if (isTraining || isTesting) {
                 action = chooseAction(state);
-                paddle.x += action * 7;
+                const moveAmount = action * 8;
+                paddle.x += moveAmount;
                 paddle.x = Math.max(0, Math.min(canvas.width - paddle.width, paddle.x));
+
+                // 보상 세이핑: 공이 패들 쪽으로 움직이는 방향 보상
+                const ballToPaddle = paddle.x + paddle.width / 2 - ball.x;
+                if ((action === -1 && ballToPaddle < 0) || (action === 1 && ballToPaddle > 0)) {
+                    reward += 0.1;
+                }
             }
 
             ball.x += ball.dx;
@@ -792,27 +726,32 @@
                 ball.dy = -ball.dy;
             }
 
-            if (ball.y + ball.dy > paddle.y - ball.radius) {
+            // 패들 충돌
+            if (ball.y + ball.dy > paddle.y - ball.radius && ball.y < paddle.y + paddle.height) {
                 if (ball.x > paddle.x && ball.x < paddle.x + paddle.width) {
                     ball.dy = -ball.dy;
-                    reward = 5;  // 증가: 1 → 5
-                } else if (ball.y + ball.dy > canvas.height - ball.radius) {
-                    reward = -50;  // 증가: -10 → -50
-                    const nextState = getState();
-                    if (isTraining) {
-                        updateQValue(state, action, reward, nextState, true);
-                    }
-                    episodeReward += reward;
-                    endEpisode();
-                    return;
+                    ball.y = paddle.y - ball.radius;
+                    reward += 2;
                 }
+            }
+
+            // 하단 경계
+            if (ball.y + ball.radius > canvas.height) {
+                reward = -5;
+                const nextState = getState();
+                if (isTraining) {
+                    updateQValue(state, action, reward, nextState, true);
+                }
+                episodeReward += reward;
+                endEpisode();
+                return;
             }
 
             const brickReward = collisionDetection();
             reward += brickReward;
 
-            if (checkGameClear()) {
-                reward += 500;  // 증가: 100 → 500
+            if (checkGameClear() || stepCount > 10000) {
+                if (checkGameClear()) reward += 100;  // 게임 클리어 보상
                 const nextState = getState();
                 if (isTraining) {
                     updateQValue(state, action, reward, nextState, true);
@@ -836,7 +775,6 @@
             totalScore += score;
             bestScore = Math.max(bestScore, score);
 
-            // Epsilon Decay 적용
             if (isTraining && epsilon > epsilonMin) {
                 epsilon = Math.max(epsilonMin, epsilon * epsilonDecay);
             }
@@ -844,23 +782,25 @@
             updateStats();
 
             if (isTraining) {
-                setTimeout(resetRound, 50);
+                setTimeout(resetRound, 10);
             } else {
                 if (gameLoop) clearInterval(gameLoop);
                 document.getElementById('modeIndicator').textContent = '게임 종료';
                 document.getElementById('modeIndicator').className = 'mode-indicator';
-                updateLearningStatus();
             }
         }
 
         function resetRound() {
             paddle.x = canvas.width / 2 - PADDLE_WIDTH / 2;
+            paddle.y = canvas.height - 50;
             ball.x = canvas.width / 2;
-            ball.y = canvas.height - 50;
-            ball.dx = (Math.random() > 0.5 ? 1 : -1) * 3;
-            ball.dy = -3;
+            ball.y = canvas.height - 70;
+            ball.dx = (Math.random() > 0.5 ? 1 : -1) * 4;
+            ball.dy = -4;
             score = 0;
+            bricksHit = 0;
             episodeReward = 0;
+            stepCount = 0;
             initBricks();
         }
 
@@ -870,38 +810,23 @@
             document.getElementById('bestScore').textContent = bestScore;
             const avgScore = episode > 0 ? Math.round(totalScore / episode) : 0;
             document.getElementById('avgScore').textContent = avgScore;
+            document.getElementById('bricksHit').textContent = totalBricksHit;
             document.getElementById('epsilonValue').textContent = epsilon.toFixed(2);
+            document.getElementById('qTableSize').textContent = Object.keys(qTable).length;
 
             const rewardEl = document.getElementById('episodeReward');
-            rewardEl.textContent = Math.round(episodeReward);
+            rewardEl.textContent = episodeReward.toFixed(1);
             rewardEl.className = 'stat-value ' + (episodeReward >= 0 ? 'positive' : 'negative');
 
-            const progress = Math.min(100, Math.round((episode / 200) * 100));
+            const progress = Math.min(100, Math.round((episode / 500) * 100));
             document.getElementById('progressBar').style.width = progress + '%';
             document.getElementById('progressText').textContent = progress + '%';
-
-            updateLearningStatus();
-        }
-
-        function updateLearningStatus() {
-            const statusEl = document.getElementById('learningStatus');
-            if (epsilon > 0.6) {
-                statusEl.textContent = '탐험중';
-                statusEl.style.color = '#FF6B6B';
-            } else if (epsilon > 0.3) {
-                statusEl.textContent = '학습중';
-                statusEl.style.color = '#FFA07A';
-            } else {
-                statusEl.textContent = '최적화';
-                statusEl.style.color = '#4CAF50';
-            }
         }
 
         function startTraining() {
             isTraining = true;
             isTesting = false;
             isManual = false;
-            epsilon = 0.9;  // 초기값으로 재설정
 
             document.getElementById('trainBtn').disabled = true;
             document.getElementById('stopBtn').disabled = false;
@@ -912,7 +837,7 @@
 
             resetRound();
             if (gameLoop) clearInterval(gameLoop);
-            const fps = Math.min(60 * speedMultiplier, 300);
+            const fps = Math.min(60 * speedMultiplier, 6000);
             gameLoop = setInterval(update, 1000 / fps);
         }
 
@@ -933,7 +858,7 @@
             isTesting = true;
             isManual = false;
             const savedEpsilon = epsilon;
-            epsilon = 0;  // 테스트 시 탐험 없음
+            epsilon = 0;
 
             document.getElementById('trainBtn').disabled = true;
             document.getElementById('testBtn').disabled = true;
@@ -945,7 +870,6 @@
             if (gameLoop) clearInterval(gameLoop);
             gameLoop = setInterval(update, 1000 / 60);
 
-            // 테스트 종료 후 epsilon 복원
             setTimeout(() => { if (!isTesting) epsilon = savedEpsilon; }, 100);
         }
 
@@ -977,7 +901,10 @@
             bestScore = 0;
             totalScore = 0;
             episodeReward = 0;
-            epsilon = 0.9;
+            bricksHit = 0;
+            totalBricksHit = 0;
+            stepCount = 0;
+            epsilon = 0.2;
 
             document.getElementById('trainBtn').disabled = false;
             document.getElementById('stopBtn').disabled = true;
